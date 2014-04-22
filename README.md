@@ -1,7 +1,7 @@
 ansible-joyent-inventory
 ========================
 
-Add your machines in joyent to ansible inventory
+Ansible dynamic inventory script
 
 ### Dependencies: 
 
@@ -10,6 +10,9 @@ Add your machines in joyent to ansible inventory
 ```sh
 pip install -r requirements.txt
 ```
+
+### Install
+put it the file in your ansible directory 
 
 ### Usage:
 
