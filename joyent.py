@@ -14,20 +14,22 @@ except ImportError:
 
 debug = False
 SMART_CACHE = True # Fork a new process to get cache and serve from cache
-CACHE_EXPIRATION_IN_SECONDS = 300
+CACHE_EXPIRATION_IN_SECONDS = 30
 SERVER_FILENAME = "joyent_server_cache.txt"
 ##
 PATH_TO_FILE = os.getenv('HELPER')
-joyent_key_id = "/" + os.environ['JOYENT_USERNAME'] + "/keys/" + os.environ['JOYENT_KEYNAME']
-joyent_secret = os.environ['HOME'] + "/.ssh/id_rsa"
-joyent_api = ['JOYENT_API_URL']
-joyent_location = "eu-ams-1.api.joyentcloud.com"
+joyent_key_id = "/" + os.getenv('JOYENT_USERNAME') + "/keys/" + os.getenv('JOYENT_KEYNAME')
+joyent_secret = os.getenv('HOME') + "/.ssh/id_rsa"
+joyent_location = os.getenv('JOYENT_LOCATION')
+if not joyent_location:
+    joyent_location = "eu-ams-1.api.joyentcloud.com"
 
 if PATH_TO_FILE and  os.path.isdir(PATH_TO_FILE) :
     SERVER_FILENAME = PATH_TO_FILE + "/" + SERVER_FILENAME
 
 if debug:
-    print SERVER_FILENAME
+    print "using the following file %s" % (SERVER_FILENAME)
+    print "cache expire time " , CACHE_EXPIRATION_IN_SECONDS
 
 def getInventory():
     servers = getServers()
@@ -75,14 +77,18 @@ def getServers():
     seconds_since_last_modified = (datetime.now() - datetime.fromtimestamp(modification_time)).total_seconds()
     
     if debug:
-        print seconds_since_last_modified
+        print "seconds since last modification ",seconds_since_last_modified
 
     if seconds_since_last_modified < CACHE_EXPIRATION_IN_SECONDS:
         if debug:
             print "retireving servers from cache..."
         return fetchServersFromCache()
     else:
-        if SMART_CACHE: 
+        if debug:
+            print "Cache expired..."        
+        if SMART_CACHE:
+            if debug: 
+                print "smart cache."            
             ## fork a new process to get cache
             fork_pid = os.fork()
             if fork_pid == 0:
@@ -90,22 +96,24 @@ def getServers():
                 os.setsid()
                 os.umask(0)
                 if debug:
-                    print "Fork child getting cache..."
+                    print "Fork getting cache..."
                 retrieveServerList()
                 sys.exit()
                 if debug:
-                    print "Fork child exit..."
+                    print "Fork exit..."
             else:
-                return retrieveServerList()
+                return fetchServersFromCache()
         else:
-            return fetchServersFromCache()
+            if debug:
+                print "No smart cache."
+            return retrieveServerList()
 
 def retrieveServerList():
     """ Check cache period either read from cache or call api
     """
     if debug:
         print "retireving servers from the API..."
-    sdc = DataCenter(location=joyent_api, key_id=joyent_key_id, secret=joyent_secret, verbose=debug)
+    sdc = DataCenter(location=joyent_location, key_id=joyent_key_id, secret=joyent_secret, verbose=debug)
     servers = sdc.machines()
     storeServersToCache(servers)
     return servers
@@ -138,4 +146,5 @@ if __name__ == '__main__':
         sys.exit(1)
     
     if debug:
-       print "Exiting..."        
+       print "Exiting..."     
+    sys.exit(0)      

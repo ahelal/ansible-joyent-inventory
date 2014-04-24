@@ -18,7 +18,7 @@ pip install -r requirements.txt
 ```sh
 JOYENT_USERNAME	Your joyent user name
 JOYENT_KEYNAME	Your joyent key name
-JOYENT_API_URL	Joyent data ceneter URL  
+joyent_location	Joyent data ceneter hostname  
 ```
 - Your ssh key located in your **~/.ssh/id.rsa**
 ### Usage:
