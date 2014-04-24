@@ -16,9 +16,9 @@ pip install -r requirements.txt
 - Configure the following environmental variables 
 
 ```sh
-**JOYENT_USERNAME**	Your joyent user name
-**JOYENT_KEYNAME**	Your joyent key name
-**JOYENT_API_URL**	Joyent data ceneter URL  
+JOYENT_USERNAME	Your joyent user name
+JOYENT_KEYNAME	Your joyent key name
+JOYENT_API_URL	Joyent data ceneter URL  
 ```
 - Your ssh key located in your **~/.ssh/id.rsa**
 ### Usage:
