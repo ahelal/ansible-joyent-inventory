@@ -2,6 +2,7 @@
 
 import os
 import sys
+import time
 import cPickle as pickle
 from datetime import datetime
 
@@ -9,9 +10,10 @@ from smartdc import DataCenter
 try:
     import json
 except ImportError:
-    import simplejson as json
+    import simplejson as json 
 
 debug = False
+SMART_CACHE = True # Fork a new process to get cache and serve from cache
 CACHE_EXPIRATION_IN_SECONDS = 300
 SERVER_FILENAME = "joyent_server_cache.txt"
 ##
@@ -64,8 +66,10 @@ def getHost(hostname):
     return allhosts.get(hostname)
 
 def getServers():
+    ## No cache just get from server
     if not os.path.isfile(SERVER_FILENAME):
         return retrieveServerList()
+  
     stats = os.stat(SERVER_FILENAME)
     modification_time = stats.st_mtime
     seconds_since_last_modified = (datetime.now() - datetime.fromtimestamp(modification_time)).total_seconds()
@@ -78,14 +82,30 @@ def getServers():
             print "retireving servers from cache..."
         return fetchServersFromCache()
     else:
-        return retrieveServerList()
+        if SMART_CACHE: 
+            ## fork a new process to get cache
+            fork_pid = os.fork()
+            if fork_pid == 0:
+                os.chdir("/")
+                os.setsid()
+                os.umask(0)
+                if debug:
+                    print "Fork child getting cache..."
+                retrieveServerList()
+                sys.exit()
+                if debug:
+                    print "Fork child exit..."
+            else:
+                return retrieveServerList()
+        else:
+            return fetchServersFromCache()
 
 def retrieveServerList():
     """ Check cache period either read from cache or call api
     """
     if debug:
         print "retireving servers from the API..."
-    sdc = DataCenter(location=joyent_location, key_id=joyent_key_id, secret=joyent_secret, verbose=debug)
+    sdc = DataCenter(location=joyent_api, key_id=joyent_key_id, secret=joyent_secret, verbose=debug)
     servers = sdc.machines()
     storeServersToCache(servers)
     return servers
@@ -97,7 +117,6 @@ class MyServer(object):
         self.id = id
         self.private_ips = private_ips
         self.public_ips = public_ips
-
 
 def fetchServersFromCache():
     return pickle.load(open(SERVER_FILENAME, "rb"))
@@ -117,3 +136,6 @@ if __name__ == '__main__':
     else:
         print "Usage: %s --list or --host <hostname>" % sys.argv[0]
         sys.exit(1)
+    
+    if debug:
+       print "Exiting..."        
