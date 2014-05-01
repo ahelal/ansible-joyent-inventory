@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 
+#!/usr/bin/env python
+debug = False
+SMART_CACHE = True # Fork a new process to get cache and serve from cache
+CACHE_EXPIRATION_IN_SECONDS = 30
+SERVER_FILENAME = "joyent_server_cache.txt"
+
 import os
 import sys
 import time
 import cPickle as pickle
 from datetime import datetime
 
-from smartdc import DataCenter
 try:
     import json
 except ImportError:
     import simplejson as json 
 
-debug = False
-SMART_CACHE = True # Fork a new process to get cache and serve from cache
-CACHE_EXPIRATION_IN_SECONDS = 30
-SERVER_FILENAME = "joyent_server_cache.txt"
+if not os.getenv('JOYENT_USERNAME'):
+	print json.dumps(json.loads("{ \"\":\"\" }"), indent=4, sort_keys=True)
+	sys.exit(0)
+
+
 ##
 PATH_TO_FILE = os.getenv('HELPER')
 joyent_key_id = "/" + os.getenv('JOYENT_USERNAME') + "/keys/" + os.getenv('JOYENT_KEYNAME')
