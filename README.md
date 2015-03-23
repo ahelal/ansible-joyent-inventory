@@ -21,6 +21,7 @@ JOYENT_KEYNAME	Your joyent key name
 joyent_location	Joyent data ceneter hostname  
 ```
 - Your ssh key located in your **~/.ssh/id.rsa**
+
 ### Usage:
 
 ```sh
