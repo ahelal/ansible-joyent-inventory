@@ -78,15 +78,19 @@ class JoyentInventory(object):
         servers = self.api_get()
         self.inventory["all"] = []
         self.inventory["hosts"] = {}
+        my_meta_data = {}
         for server in servers:
             # Groups Management
-            group = server.type
-            if group is None:
-                group = 'ungrouped'
-            if group not in self.inventory:
-                self.inventory.update({group: []})
-            # Add to a group and all
-            self.inventory[group].append(server.name)
+            groups = [server.type]
+            # TODO: Get groups vie tags and get env from tag
+            if groups is None:
+                groups = ['ungrouped']
+            for group in groups:
+                if group not in self.inventory:
+                    # Add to a group
+                    self.inventory.update({group: []})
+                self.inventory[group].append(server.name)
+            # Add tp group all
             self.inventory["all"].append(server.name)
 
             # hosts Management
@@ -98,13 +102,15 @@ class JoyentInventory(object):
                 ssh_connection = server.name
 
             self.inventory["hosts"][server.name] = {"joyent_id": server.id,
-                                  "joyent_public_ip": server.public_ips,
-                                  "joyent_private_ip": server.private_ips,
-                                  "ansible_ssh_host": ssh_connection}
+                                                    "joyent_public_ip": server.public_ips,
+                                                    "joyent_private_ip": server.private_ips,
+                                                    "ansible_ssh_host": ssh_connection}
             # SmartOS python
             if server.type == "smartmachine":
                 self.inventory["hosts"][server.name]["ansible_python_interpreter"] = "/opt/local/bin/python"
-
+            # Build meta
+            my_meta_data.update({server.name: self.inventory["hosts"][server.name]})
+        self.inventory.update({'_meta': {'hostvars': my_meta_data}})
         self.save_cache()
 
     def api_get(self):
