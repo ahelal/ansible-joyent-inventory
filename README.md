@@ -6,7 +6,7 @@ Ansible dynamic inventory script
 ### Dependencies: 
 
 * [smartdc](https://pypi.python.org/pypi/smartdc) to use the tag grouping functionality use my fork (https://github.com/ahelal/py-smartdc/tree/feature/tags) 
-* [daemonize]/https://github.com/bmc/daemonize)
+* [daemonize](https://github.com/bmc/daemonize)
 
 ```sh
 pip install -r requirements.txt
