@@ -162,10 +162,6 @@ class JoyentInventory(object):
         elif len(sys.argv) == 3 and (sys.argv[1] == '--host'):
             self.check_cache()
             print json.dumps(self.inventory["hosts"][sys.argv[2]], indent=4)
-        elif len(sys.argv) == 2 and (sys.argv[1] == '--debug'):
-            self.check_cache()
-            for item in self.inventory:
-                print item
         else:
             print "Usage: %s --list or --host <hostname>" % sys.argv[0]
             sys.exit(1)
