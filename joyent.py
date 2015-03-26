@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Uses py-smartdc fork in https://github.com/ahelal/py-smartdc.git
 
 import os
 import sys
@@ -31,6 +32,8 @@ class JoyentInventory(object):
         self.__get_config__()
         self.debug = False
         self.pid_file = "/tmp/joyent_api.pid"
+        self.tag_ignore = ["provisioner_ver", "provisioner"]
+        #self.tag_ignore = ["1", "2"]
 
     def __get_config__(self):
         # Read config
@@ -80,11 +83,20 @@ class JoyentInventory(object):
         self.inventory["hosts"] = {}
         my_meta_data = {}
         for server in servers:
+            self.inventory["hosts"][server.name] = {}  # Init server
             # Groups Management
             groups = [server.type]
-            # TODO: Get groups vie tags and get env from tag
-            if groups is None:
-                groups = ['ungrouped']
+            try:
+                if server.tags:
+                    self.inventory["hosts"][server.name].update({"joyent_tags": server.tags})
+                    # Convert tags into groups except for the ignored list item
+                    for tag in server.tags:
+                        if tag not in self.tag_ignore:
+                            groups.append(server.tags[tag])
+            except AttributeError, E:
+                pass
+                #print "error:", E
+
             for group in groups:
                 if group not in self.inventory:
                     # Add to a group
@@ -92,7 +104,6 @@ class JoyentInventory(object):
                 self.inventory[group].append(server.name)
             # Add tp group all
             self.inventory["all"].append(server.name)
-
             # hosts Management
             if server.public_ips:
                 ssh_connection = server.public_ips[0]
@@ -101,10 +112,19 @@ class JoyentInventory(object):
             else:
                 ssh_connection = server.name
 
-            self.inventory["hosts"][server.name] = {"joyent_id": server.id,
-                                                    "joyent_public_ip": server.public_ips,
-                                                    "joyent_private_ip": server.private_ips,
-                                                    "ansible_ssh_host": ssh_connection}
+            try:
+                self.inventory["hosts"][server.name].update({"joyent_image": server.image,
+                                                             "joyent_compute_node": server.compute_node,
+                                                             "joyent_networks": server.networks,
+                                                             "joyent_package": server.package})
+            except AttributeError:
+                pass
+
+            self.inventory["hosts"][server.name].update({"joyent_id": server.id,
+                                                         "joyent_public_ip": server.public_ips,
+                                                         "joyent_private_ip": server.private_ips,
+                                                         "ansible_ssh_host": ssh_connection})
+
             # SmartOS python
             if server.type == "smartmachine":
                 self.inventory["hosts"][server.name]["ansible_python_interpreter"] = "/opt/local/bin/python"
@@ -142,8 +162,10 @@ class JoyentInventory(object):
         elif len(sys.argv) == 3 and (sys.argv[1] == '--host'):
             self.check_cache()
             print json.dumps(self.inventory["hosts"][sys.argv[2]], indent=4)
-        elif len(sys.argv) == 2 and (sys.argv[1] == '--pint'):
-            print json.dumps(self.build_inv_from_api(), indent=4)
+        elif len(sys.argv) == 2 and (sys.argv[1] == '--debug'):
+            self.check_cache()
+            for item in self.inventory:
+                print item
         else:
             print "Usage: %s --list or --host <hostname>" % sys.argv[0]
             sys.exit(1)
