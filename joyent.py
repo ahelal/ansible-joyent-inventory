@@ -7,6 +7,12 @@ import ConfigParser
 from daemonize import Daemonize
 from datetime import datetime
 
+__DEFAULT_CACHE_FILE__ = "/tmp/ansible_inventory_joyent.cache"
+__DEFAULT_PID_FILE__ = "/tmp/ansible_inventory_joyent.pid"
+__DEFAULT_ENV_PREFIX__ = "JOYENT_INV_"
+__DEFAULT_CACHE_EXPIRE__ = 300
+__DEFAULT_URL__ = "eu-ams-1.api.joyentcloud.com"
+__DEFAULT_AUTH_KEY__ = "~/.ssh/id_rsa"
 try:
     import json
 except ImportError:
@@ -31,9 +37,8 @@ class JoyentInventory(object):
         self.inventory = {}
         self.__get_config__()
         self.debug = False
-        self.pid_file = "/tmp/joyent_api.pid"
+        self.pid_file = __DEFAULT_PID_FILE__
         self.tag_ignore = ["provisioner_ver", "provisioner"]
-        #self.tag_ignore = ["1", "2"]
 
     def __get_config__(self):
         # Read config
@@ -45,16 +50,29 @@ class JoyentInventory(object):
                 self.config.read(config_filename)
                 break
 
-        self.cache_smart = self.config.getboolean('cache', 'cache_smart')       
-        self.cache_expire = self.config.getint('cache', 'cache_expire')
-        self.cache_dir = self.config.get('cache', 'cache_dir')
-        self.cache_file = self.cache_dir + "/ansible_joyent.cache"
-        self.joyent_uri = self.config.get('api', 'uri')
-        if self.config.get('auth', 'auth_type') == "key":
-            self.joyent_secret = self.config.get('auth', 'auth_key')
-            self.joyent_username = self.config.get('auth', 'auth_username')
-            self.joyent_key_name = self.config.get('auth', 'auth_key_name')
-            self.joyent_key_id = "/" + self.joyent_username + "/keys/" + self.joyent_key_name
+        self.cache_smart = bool(self._get_config('cache_smart', fail_if_not_set=False, default_value=True))  # might not cast properly check
+        self.cache_expire = int(self._get_config('cache_expire', fail_if_not_set=False, default_value=300))
+        self.cache_file = self._get_config('cache_file', fail_if_not_set=False, default_value=__DEFAULT_CACHE_FILE__)
+        self.joyent_uri = self._get_config('uri', fail_if_not_set=False, default_value=__DEFAULT_URL__)
+        self.joyent_secret = self._get_config('auth_key',  fail_if_not_set=False, default_value=__DEFAULT_AUTH_KEY__)
+        self.joyent_username = self._get_config('auth_username', fail_if_not_set=True)
+        self.joyent_key_name = self._get_config('auth_key_name', fail_if_not_set=True)
+        # Compile key id
+        self.joyent_key_id = "/" + self.joyent_username + "/keys/" + self.joyent_key_name
+
+    def _get_config(self, value, fail_if_not_set=True, default_value=None):
+        # Env variable always win
+        if os.getenv(__DEFAULT_ENV_PREFIX__ + value.upper(), False):
+            return os.getenv(__DEFAULT_ENV_PREFIX__ + value.upper())
+        try:
+            if self.config.get('main', value, vars=False):
+                return self.config.get('main', value)
+        except ConfigParser.NoOptionError:
+            pass
+        if fail_if_not_set:
+            print "Failed to get setting for '{}' from environment and ini file".format(value)
+        else:
+            return default_value
 
     def check_cache(self):
         ''' Checks if we can server from cache or API call '''
