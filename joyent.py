@@ -50,7 +50,9 @@ class JoyentInventory(object):
                 self.config.read(config_filename)
                 break
 
-        self.cache_smart = bool(self._get_config('cache_smart', fail_if_not_set=False, default_value=True))  # might not cast properly check
+        self.cache_smart = self._get_config('cache_smart', fail_if_not_set=False, default_value="true").lower() \
+                             in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh']
+
         self.cache_expire = int(self._get_config('cache_expire', fail_if_not_set=False, default_value=300))
         self.cache_file = self._get_config('cache_file', fail_if_not_set=False, default_value=__DEFAULT_CACHE_FILE__)
         self.joyent_uri = self._get_config('uri', fail_if_not_set=False, default_value=__DEFAULT_URL__)
@@ -60,7 +62,7 @@ class JoyentInventory(object):
         # Compile key id
         self.joyent_key_id = "/" + self.joyent_username + "/keys/" + self.joyent_key_name
 
-    def _get_config(self, value, fail_if_not_set=True, default_value=None):
+    def _get_config(self, value, fail_if_not_set=True, default_value=None, value_type=None):
         # Env variable always win
         if os.getenv(__DEFAULT_ENV_PREFIX__ + value.upper(), False):
             return os.getenv(__DEFAULT_ENV_PREFIX__ + value.upper())
