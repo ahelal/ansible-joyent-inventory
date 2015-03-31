@@ -1,7 +1,7 @@
 ansible-joyent-inventory
 ========================
 
-Ansible dynamic inventory script
+Ansible dynamic inventory script. Supports smart caching
 
 ### Dependencies: 
 
