@@ -1,2 +1,2 @@
-smartdc
+git+https://github.com/ahelal/py-smartdc.git
 daemonize
