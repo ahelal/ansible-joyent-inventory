@@ -65,7 +65,7 @@ class JoyentInventory(object):
         # Compile key id
         self.joyent_key_id = "/" + self.joyent_username + "/keys/" + self.joyent_key_name
 
-    def _get_config(self, value, fail_if_not_set=True, default_value=None, value_type=None):
+    def _get_config(self, value, fail_if_not_set=True, default_value=None):
         # Env variable always win
         if os.getenv(__DEFAULT_ENV_PREFIX__ + value.upper(), False):
             return os.getenv(__DEFAULT_ENV_PREFIX__ + value.upper())
@@ -74,8 +74,13 @@ class JoyentInventory(object):
                 return self.config.get('main', value)
         except ConfigParser.NoOptionError:
             pass
+        except ConfigParser.NoSectionError:
+            pass
+
         if fail_if_not_set:
-            print "Failed to get setting for '{}' from environment and ini file".format(value)
+            print "Failed to get setting for '{}' from ini file or '{}' from env variable."\
+                .format(value, __DEFAULT_ENV_PREFIX__ + value.upper())
+            exit(1)
         else:
             return default_value
 
